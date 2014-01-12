@@ -17,7 +17,7 @@ struct Node
   struct Node *next;
 };
 
-struct Node * pop (struct Node * head, void ** data)
+struct Node * pop (struct Node * head, command_t * data)
 {
   if (head == NULL) 
   {
@@ -68,8 +68,9 @@ make_command_stream (int (*get_next_byte) (void *),
   char c; 
   char tmp[120] = "\0";
   char comb[2];
-  command_t temp;
-  char * string;
+  char ** string;
+  string = NULL;
+  struct command * temp;
 
   struct command * tree = NULL;
   struct Node * oStack = NULL;
@@ -96,22 +97,55 @@ make_command_stream (int (*get_next_byte) (void *),
          strcpy(tmp,"\0");
          break;
       case '|': 
-         //printf("%s\n", tmp); 
-         strcpy(tmp,"\0");
-         break;
-      case '&': 
-         //printf("%s\n", tmp); 
-         temp = ( struct command *)malloc(sizeof (struct command));
+         temp = malloc(sizeof (struct command));
              
          temp->type = SIMPLE_COMMAND;
          temp->status = 1;
          temp->input = 0;
          temp->output = 0;
-         string = malloc(sizeof (tmp));
-         strcpy(string, tmp);
-         temp->u.word = &string;
+         temp->u.word = malloc(sizeof (temp->u));
+         string = malloc(sizeof (char *));
+         *string = malloc(sizeof (tmp));
+         strcpy(*string, tmp);
+         temp->u.word = string;
          strcpy(tmp, "\0");
          dStack = push(dStack, temp);
+         input = get_next_byte (get_next_byte_argument);
+         if ( input != '|')
+         {
+            exit(1);
+            printf("| error\n");
+         }
+         else
+         {
+             temp = malloc(sizeof (struct command));
+             
+             temp->type = OR_COMMAND;
+             temp->status = 1;
+             temp->input = 0;
+             temp->output = 0;
+             
+             oStack = push(oStack, temp);
+             
+         }
+         strcpy(tmp,"\0");
+         break;
+      case '&': 
+         //printf("%s\n", tmp); 
+         temp = malloc(sizeof (struct command));
+             
+         temp->type = SIMPLE_COMMAND;
+         temp->status = 1;
+         temp->input = 0;
+         temp->output = 0;
+         temp->u.word = malloc(sizeof (temp->u));
+         string = malloc(sizeof (char *));
+         *string = malloc(sizeof (tmp));
+         strcpy(*string, tmp);
+         temp->u.word = string;
+         strcpy(tmp, "\0");
+         dStack = push(dStack, temp);
+
          input = get_next_byte (get_next_byte_argument);
          if ( input != '&')
          {
@@ -120,7 +154,7 @@ make_command_stream (int (*get_next_byte) (void *),
          }
          else
          {
-             temp = ( struct command *)malloc(sizeof (struct command));
+             temp = malloc(sizeof (struct command));
              
              temp->type = AND_COMMAND;
              temp->status = 1;
@@ -143,9 +177,11 @@ make_command_stream (int (*get_next_byte) (void *),
          temp->status = 1;
          temp->input = 0;
          temp->output = 0;
-         string = malloc(sizeof (tmp));
-         strcpy(string, tmp);
-         temp->u.word = &string;
+         temp->u.word = malloc(sizeof (temp->u));
+         string = malloc(sizeof (char *));
+         *string = malloc(sizeof (tmp));
+         strcpy(*string, tmp);
+         temp->u.word = string;
          dStack = push(dStack, temp);
          strcpy(tmp,"\0");
          break;
@@ -164,8 +200,19 @@ make_command_stream (int (*get_next_byte) (void *),
       }
       input = get_next_byte (get_next_byte_argument);
   }  
- 
-  error (1, 0, "command reading not yet implemented");
+
+  struct command * com; 
+  while ( oStack != NULL) 
+  {
+     oStack = pop(oStack, &com);
+     printf("%d\n", com->type);
+  }
+  while ( dStack != NULL) 
+  {
+     dStack = pop(dStack, &com);
+     printf("%s\n", *(com->u.word));
+  }
+  //error (1, 0, "command reading not yet implemented");
   return 0;
 }
 
