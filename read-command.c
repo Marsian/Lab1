@@ -13,11 +13,11 @@
 
 struct Node
 {
-  command_t data;
+  void * data;
   struct Node *next;
 };
 
-struct Node * pop (struct Node * head, command_t * data)
+struct Node * pop (struct Node * head, void ** data)
 {
   if (head == NULL) 
   {
@@ -34,7 +34,7 @@ struct Node * pop (struct Node * head, command_t * data)
   }
 }
 
-struct Node * push (struct Node * head, command_t data)
+struct Node * push (struct Node * head, void * data)
 {
   struct Node * temp;
   temp = ( struct Node *)malloc(sizeof (struct Node));
@@ -52,10 +52,8 @@ struct Node * push (struct Node * head, command_t data)
 
 /* FIXME: Define the type 'struct command_stream' here.  This should
    complete the incomplete type declaration in command.h.  */
-struct command_stream
-{
-  
-};
+typedef struct Node * command_stream;
+
 
 command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
@@ -70,6 +68,13 @@ make_command_stream (int (*get_next_byte) (void *),
   char c; 
   char tmp[120] = "\0";
   char comb[2];
+  command_t temp;
+  char * string;
+
+  struct command * tree = NULL;
+  struct Node * oStack = NULL;
+  struct Node * dStack = NULL; 
+  struct Node *  forest = NULL;
 
   input = get_next_byte (get_next_byte_argument);
   while ( input != EOF )
@@ -79,35 +84,73 @@ make_command_stream (int (*get_next_byte) (void *),
       switch (c)
       {
       case '(': 
-         printf("%s\n", tmp); 
+         //printf("%s\n", tmp); 
          strcpy(tmp,"\0");
          break;
       case '>': 
-         printf("%s\n", tmp); 
+         //printf("%s\n", tmp); 
          strcpy(tmp,"\0");
          break;
       case '<': 
-         printf("%s\n", tmp); 
+         //printf("%s\n", tmp); 
          strcpy(tmp,"\0");
          break;
       case '|': 
-         printf("%s\n", tmp); 
+         //printf("%s\n", tmp); 
          strcpy(tmp,"\0");
          break;
       case '&': 
-         printf("%s\n", tmp); 
+         //printf("%s\n", tmp); 
+         temp = ( struct command *)malloc(sizeof (struct command));
+             
+         temp->type = SIMPLE_COMMAND;
+         temp->status = 1;
+         temp->input = 0;
+         temp->output = 0;
+         string = malloc(sizeof (tmp));
+         strcpy(string, tmp);
+         temp->u.word = &string;
+         strcpy(tmp, "\0");
+         dStack = push(dStack, temp);
+         input = get_next_byte (get_next_byte_argument);
+         if ( input != '&')
+         {
+            exit(1);
+            printf("& error\n");
+         }
+         else
+         {
+             temp = ( struct command *)malloc(sizeof (struct command));
+             
+             temp->type = AND_COMMAND;
+             temp->status = 1;
+             temp->input = 0;
+             temp->output = 0;
+             
+             oStack = push(oStack, temp);
+             
+         }
          strcpy(tmp,"\0");
          break;
       case ';': 
-         printf("%s\n", tmp); 
+         //printf("%s\n", tmp); 
          strcpy(tmp,"\0");
          break;
       case '\n': 
-         printf("%s\n", tmp);
+         temp = ( struct command *)malloc(sizeof (struct command));
+             
+         temp->type = SIMPLE_COMMAND;
+         temp->status = 1;
+         temp->input = 0;
+         temp->output = 0;
+         string = malloc(sizeof (tmp));
+         strcpy(string, tmp);
+         temp->u.word = &string;
+         dStack = push(dStack, temp);
          strcpy(tmp,"\0");
          break;
       case '#':
-         printf("%s\n", tmp);
+         //printf("%s\n", tmp);
          strcpy(tmp,"\0");
          while (input != '\n')
          {
