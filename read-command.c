@@ -50,6 +50,35 @@ struct Node * push (struct Node * head, void * data)
   return head;
 }
 
+struct command * peek(struct Node * head)
+{
+  return head->data;
+}
+
+void depthTraverse( struct command * p)
+{
+  if (p != NULL)
+  {
+      if (p->type != SIMPLE_COMMAND)
+      {
+         depthTraverse(p->u.command[0]);
+      }
+
+      if (p -> type == SIMPLE_COMMAND) 
+      {
+          printf("%s", *(p->u.word));
+      }
+      else
+      {
+          printf("%d", p->type);
+      }
+
+      if (p->type != SIMPLE_COMMAND)
+      {
+         depthTraverse(p->u.command[1]);
+      }
+  }
+}
 /* FIXME: Define the type 'struct command_stream' here.  This should
    complete the incomplete type declaration in command.h.  */
 typedef struct Node * command_stream;
@@ -71,7 +100,9 @@ make_command_stream (int (*get_next_byte) (void *),
   char ** string;
   string = NULL;
   struct command * temp;
-
+  struct command * com; 
+  struct command * com1;
+  struct command * com2;
   struct command * tree = NULL;
   struct Node * oStack = NULL;
   struct Node * dStack = NULL; 
@@ -81,7 +112,7 @@ make_command_stream (int (*get_next_byte) (void *),
   while ( input != EOF )
   {
       c = (char)input;
-      printf("%c", c);
+      //printf("%c", c);
       switch (c)
       {
       case '(': 
@@ -124,14 +155,31 @@ make_command_stream (int (*get_next_byte) (void *),
              temp->status = 1;
              temp->input = 0;
              temp->output = 0;
-             
-             oStack = push(oStack, temp);
-             
+            
+             if (oStack == NULL)
+             { 
+                oStack = push(oStack, temp);
+             }
+             else if ((peek(oStack))->type == 1)
+             {
+                oStack = push(oStack, temp);
+             }
+             else 
+             {
+                dStack = pop(dStack, &com2);
+                dStack = pop(dStack, &com1);
+                oStack = pop(oStack, &com);
+                com->u.command[0] = malloc(sizeof(com->u));
+                com->u.command[1] = malloc(sizeof(com->u));
+                com->u.command[0] = com1;
+                com->u.command[1] = com2;
+                dStack = push(dStack, com);
+                oStack = push(oStack, temp);
+             }
          }
          strcpy(tmp,"\0");
          break;
       case '&': 
-         //printf("%s\n", tmp); 
          temp = malloc(sizeof (struct command));
              
          temp->type = SIMPLE_COMMAND;
@@ -161,8 +209,26 @@ make_command_stream (int (*get_next_byte) (void *),
              temp->input = 0;
              temp->output = 0;
              
-             oStack = push(oStack, temp);
-             
+             if (oStack == NULL)
+             { 
+                oStack = push(oStack, temp);
+             }
+             else if ((peek(oStack))->type == 1)
+             {
+                oStack = push(oStack, temp);
+             }
+             else 
+             {
+                dStack = pop(dStack, &com2);
+                dStack = pop(dStack, &com1);
+                oStack = pop(oStack, &com);
+                com->u.command[0] = malloc(sizeof(com->u));
+                com->u.command[1] = malloc(sizeof(com->u));
+                com->u.command[0] = com1;
+                com->u.command[1] = com2;
+                dStack = push(dStack, com);
+                oStack = push(oStack, temp);
+             }
          }
          strcpy(tmp,"\0");
          break;
@@ -184,6 +250,22 @@ make_command_stream (int (*get_next_byte) (void *),
          temp->u.word = string;
          dStack = push(dStack, temp);
          strcpy(tmp,"\0");
+
+         while (oStack != NULL)
+         {
+
+                dStack = pop(dStack, &com2);
+                dStack = pop(dStack, &com1);
+                oStack = pop(oStack, &com);
+                
+                com->u.command[0] = malloc(sizeof(com->u));
+                com->u.command[1] = malloc(sizeof(com->u));
+                com->u.command[0] = com1;
+                com->u.command[1] = com2;
+                dStack = push(dStack, com);
+         }
+         dStack = pop(dStack, &com);
+         forest = push(forest, com);
          break;
       case '#':
          //printf("%s\n", tmp);
@@ -201,11 +283,12 @@ make_command_stream (int (*get_next_byte) (void *),
       input = get_next_byte (get_next_byte_argument);
   }  
 
-  struct command * com; 
-  while ( oStack != NULL) 
+  while ( forest != NULL) 
   {
-     oStack = pop(oStack, &com);
-     printf("%d\n", com->type);
+     forest = pop(forest, &tree);
+     printf("root: %d\n", tree->type);
+     depthTraverse(tree);
+     printf("\n");
   }
   while ( dStack != NULL) 
   {
