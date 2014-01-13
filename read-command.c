@@ -11,11 +11,11 @@
 #include <stdio.h>
 #include <string.h>
 
-struct Node
+/*struct Node
 {
   void * data;
   struct Node *next;
-};
+};*/
 
 struct Node * pop (struct Node * head, command_t * data)
 {
@@ -98,12 +98,29 @@ struct command * peek(struct Node * head)
   return head->data;
 }
 
+int isEmpty(char * tmp)
+{
+     while (*tmp != '\0')
+     {
+         if (*tmp != ' ' && *tmp != '\t')
+         {
+             return 0;
+         }
+         else
+         {
+             tmp ++;
+         }
+     }
+     return 1;
+}
+
 void depthTraverse( struct command * p)
 {
   if (p != NULL)
   {
       if (p->type == SUBSHELL_COMMAND)
       {
+         printf("(");
          depthTraverse(p->u.subshell_command);
       }
       else if (p->type != SIMPLE_COMMAND)
@@ -124,11 +141,7 @@ void depthTraverse( struct command * p)
           printf("%d", p->type);
       }
 
-      if (p->type == SUBSHELL_COMMAND)
-      {
-         depthTraverse(p->u.subshell_command);
-      }
-      else if (p->type != SIMPLE_COMMAND)
+      if (p->type != SIMPLE_COMMAND)
       {
          depthTraverse(p->u.command[1]);
       }
@@ -141,7 +154,7 @@ void depthTraverse( struct command * p)
 typedef struct Node * command_stream;
 
 
-command_stream_t
+struct Node **
 make_command_stream (int (*get_next_byte) (void *),
 		     void *get_next_byte_argument)
 {
@@ -165,22 +178,21 @@ make_command_stream (int (*get_next_byte) (void *),
   struct command * tree = NULL;
   struct Node * oStack = NULL;
   struct Node * dStack = NULL; 
-  struct Node * forest = NULL;
+  struct Node ** forest;
+  forest = malloc(sizeof(struct Node **));
+  *forest = malloc(sizeof(struct Node *));
+  *forest =  NULL;
 
-  printf("what the fuck\n");
   input = get_next_byte (get_next_byte_argument);
   while ( input != EOF )
   {
       c = (char)input;
-      printf("%c", c);
       switch (c)
       {
       case '(': 
          //printf("%s\n", tmp); 
          //if ( tmp == "\0")
-         printf("OK0"); 
          strcpy(tmp,"\0");
-         printf("OK1"); 
          temp = malloc(sizeof (struct command));
          
          temp->type = SUBSHELL_COMMAND;
@@ -189,8 +201,7 @@ make_command_stream (int (*get_next_byte) (void *),
          temp->output = 0;
 
          oStack = push(oStack, temp);
-
-         printf("OK2"); 
+         //printf("find a (\n");
          break;
       case ')':
          dStack = addSimpleCommand(dStack, tmp); 
@@ -201,6 +212,7 @@ make_command_stream (int (*get_next_byte) (void *),
 		dStack = pop(dStack, &com2);
 		dStack = pop(dStack, &com1);
 		oStack = pop(oStack, &com);
+        // printf("\nOper: %d\n", com->type);
 		com->u.command[0] = malloc(sizeof(com->u));
 		com->u.command[1] = malloc(sizeof(com->u));
 		com->u.command[0] = com1;
@@ -210,9 +222,17 @@ make_command_stream (int (*get_next_byte) (void *),
          
          oStack = pop(oStack, &com);
          dStack = pop(dStack, &com1);
-
+         com->u.subshell_command = malloc(sizeof(com->u));
          com->u.subshell_command = com1;
+         //printf("\nOperator: %d\n", com1->type);
+         //printf("\nTTT\n");
+         //depthTraverse(com);
+         //printf("\nTTT\n");
+       
          dStack = push(dStack, com);
+
+        
+         //printf("\nOperator: %d\n", (peek(oStack))->type);
 
       case '>': 
          dStack = addSimpleCommand(dStack, tmp); 
@@ -235,9 +255,11 @@ make_command_stream (int (*get_next_byte) (void *),
          metRedirection = 1;
          break;
       case '|':
-        
-         dStack = addSimpleCommand(dStack, tmp); 
-         strcpy(tmp, "\0");
+         if ( isEmpty(tmp) == 0)
+         { 
+             dStack = addSimpleCommand(dStack, tmp); 
+             strcpy(tmp, "\0");
+         }
 
          if (metRedirection > 0)
          {
@@ -264,7 +286,7 @@ make_command_stream (int (*get_next_byte) (void *),
              { 
                 oStack = push(oStack, temp);
              }
-             else if ((peek(oStack))->type < 2)
+             else if ((peek(oStack))->type < 2 || (peek(oStack))->type == 5)
              {
                 oStack = push(oStack, temp);
              }
@@ -283,6 +305,15 @@ make_command_stream (int (*get_next_byte) (void *),
          }
          else
          {
+
+         /*while (dStack != NULL)
+         {
+             dStack = pop(dStack, &com2);
+             
+             printf("\nStack Traverse\n");
+             depthTraverse(com2);
+             printf("\nEnd\n");
+         }*/
              temp = malloc(sizeof (struct command));
              
              temp->type = OR_COMMAND;
@@ -300,8 +331,9 @@ make_command_stream (int (*get_next_byte) (void *),
              }
              else 
              {
-                while ( oStack != NULL && (peek(oStack))->type > 2 )
+                while ( oStack != NULL && (peek(oStack))->type != 1 )
                 {
+                        if ((peek(oStack))->type == 5) break;
 			dStack = pop(dStack, &com2);
 			dStack = pop(dStack, &com1);
 			oStack = pop(oStack, &com);
@@ -316,8 +348,11 @@ make_command_stream (int (*get_next_byte) (void *),
          }
          break;
       case '&': 
-         dStack = addSimpleCommand(dStack, tmp);
-         strcpy(tmp, "\0");
+         if ( isEmpty(tmp) != 1)
+         {
+             dStack = addSimpleCommand(dStack, tmp);
+             strcpy(tmp, "\0");
+         }
 
          if (metRedirection > 0)
          {
@@ -350,8 +385,9 @@ make_command_stream (int (*get_next_byte) (void *),
              }
              else 
              {
-                while ( oStack != NULL && (peek(oStack))->type > 2 )
+                while ( oStack != NULL && (peek(oStack))->type != 1 )
                 {
+                        if ((peek(oStack))->type == 5) break;
 			dStack = pop(dStack, &com2);
 			dStack = pop(dStack, &com1);
 			oStack = pop(oStack, &com);
@@ -404,8 +440,11 @@ make_command_stream (int (*get_next_byte) (void *),
          
          break;
       case '\n': 
-         dStack = addSimpleCommand(dStack, tmp);
-         strcpy(tmp,"\0");
+         if (strcmp(tmp, "\0"))
+         {
+            dStack = addSimpleCommand(dStack, tmp);
+            strcpy(tmp,"\0");
+         }
 
          if (metRedirection > 0)
          {
@@ -426,7 +465,7 @@ make_command_stream (int (*get_next_byte) (void *),
                 dStack = push(dStack, com);
          }
          dStack = pop(dStack, &com);
-         forest = push(forest, com);
+         *forest = push(*forest, com);
          break;
       case '#':
          //printf("%s\n", tmp);
@@ -444,26 +483,31 @@ make_command_stream (int (*get_next_byte) (void *),
       input = get_next_byte (get_next_byte_argument);
   }  
 
-  while ( forest != NULL) 
+  /*while ( forest != NULL) 
   {
      forest = pop(forest, &tree);
      printf("root: %d\n", tree->type);
      depthTraverse(tree);
      printf("\n");
-  }
-  while ( dStack != NULL) 
-  {
-     dStack = pop(dStack, &com);
-     printf("%s\n", *(com->u.word));
-  }
-  //error (1, 0, "command reading not yet implemented");
-  return 0;
+  }*/
+
+  return forest;
 }
 
 command_t
-read_command_stream (command_stream_t s)
+read_command_stream (struct Node ** s)
 {
+  struct command * tmp;
+  if (*s != NULL)
+  {
+     *s = pop(*s, &tmp);
+     return tmp;
+  }
+  else 
+  {
+     return NULL;
+  }
   /* FIXME: Replace this with your implementation too.  */
-  error (1, 0, "command reading not yet implemented");
+  //error (1, 0, "command reading not yet implemented");
   return 0;
 }
