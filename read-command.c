@@ -50,6 +50,49 @@ struct Node * push (struct Node * head, void * data)
   return head;
 }
 
+struct Node *  addSimpleCommand ( struct Node * head,
+                                  char * tmp)
+{
+  struct command * temp;
+  char ** string;
+  temp = malloc(sizeof (struct command));
+             
+  temp->type = SIMPLE_COMMAND;
+  temp->status = 1;
+  temp->input = 0;
+  temp->output = 0;
+  temp->u.word = malloc(sizeof (temp->u));
+  string = malloc(sizeof (char *));
+  *string = malloc(sizeof (tmp));
+  strcpy(*string, tmp);
+  temp->u.word = string;
+  head = push(head, temp);
+
+  return head;
+}
+
+struct Node * redirection ( struct Node * head,
+                            int tmp)
+{
+  struct command * temp1, * temp2;
+  head = pop(head, &temp1);
+  head = pop(head, &temp2);
+
+  if ( tmp == 1)
+  {
+     temp2->input = *(temp1->u.word);
+  }
+  else
+  {
+     temp2->output = *(temp1->u.word);
+  }
+
+  free(temp1);
+  head = push(head, temp2);
+
+  return head;
+}
+
 struct command * peek(struct Node * head)
 {
   return head->data;
@@ -59,7 +102,11 @@ void depthTraverse( struct command * p)
 {
   if (p != NULL)
   {
-      if (p->type != SIMPLE_COMMAND)
+      if (p->type == SUBSHELL_COMMAND)
+      {
+         depthTraverse(p->u.subshell_command);
+      }
+      else if (p->type != SIMPLE_COMMAND)
       {
          depthTraverse(p->u.command[0]);
       }
@@ -68,17 +115,27 @@ void depthTraverse( struct command * p)
       {
           printf("%s", *(p->u.word));
       }
+      else if (p -> type == SUBSHELL_COMMAND)
+      {
+          printf("%d", p->type);
+      }
       else
       {
           printf("%d", p->type);
       }
 
-      if (p->type != SIMPLE_COMMAND)
+      if (p->type == SUBSHELL_COMMAND)
+      {
+         depthTraverse(p->u.subshell_command);
+      }
+      else if (p->type != SIMPLE_COMMAND)
       {
          depthTraverse(p->u.command[1]);
       }
   }
 }
+
+
 /* FIXME: Define the type 'struct command_stream' here.  This should
    complete the incomplete type declaration in command.h.  */
 typedef struct Node * command_stream;
@@ -99,6 +156,8 @@ make_command_stream (int (*get_next_byte) (void *),
   char comb[2];
   char ** string;
   string = NULL;
+  int metRedirection = 0;
+  int inSubshell = 0;
   struct command * temp;
   struct command * com; 
   struct command * com1;
@@ -106,46 +165,121 @@ make_command_stream (int (*get_next_byte) (void *),
   struct command * tree = NULL;
   struct Node * oStack = NULL;
   struct Node * dStack = NULL; 
-  struct Node *  forest = NULL;
+  struct Node * forest = NULL;
 
+  printf("what the fuck\n");
   input = get_next_byte (get_next_byte_argument);
   while ( input != EOF )
   {
       c = (char)input;
-      //printf("%c", c);
+      printf("%c", c);
       switch (c)
       {
       case '(': 
          //printf("%s\n", tmp); 
+         //if ( tmp == "\0")
+         printf("OK0"); 
          strcpy(tmp,"\0");
-         break;
-      case '>': 
-         //printf("%s\n", tmp); 
-         strcpy(tmp,"\0");
-         break;
-      case '<': 
-         //printf("%s\n", tmp); 
-         strcpy(tmp,"\0");
-         break;
-      case '|': 
+         printf("OK1"); 
          temp = malloc(sizeof (struct command));
-             
-         temp->type = SIMPLE_COMMAND;
+         
+         temp->type = SUBSHELL_COMMAND;
          temp->status = 1;
          temp->input = 0;
          temp->output = 0;
-         temp->u.word = malloc(sizeof (temp->u));
-         string = malloc(sizeof (char *));
-         *string = malloc(sizeof (tmp));
-         strcpy(*string, tmp);
-         temp->u.word = string;
+
+         oStack = push(oStack, temp);
+
+         printf("OK2"); 
+         break;
+      case ')':
+         dStack = addSimpleCommand(dStack, tmp); 
+         strcpy(tmp,"\0");
+
+         while ((peek(oStack))->type != 5 )
+         {
+		dStack = pop(dStack, &com2);
+		dStack = pop(dStack, &com1);
+		oStack = pop(oStack, &com);
+		com->u.command[0] = malloc(sizeof(com->u));
+		com->u.command[1] = malloc(sizeof(com->u));
+		com->u.command[0] = com1;
+		com->u.command[1] = com2;
+		dStack = push(dStack, com);
+         }
+         
+         oStack = pop(oStack, &com);
+         dStack = pop(dStack, &com1);
+
+         com->u.subshell_command = com1;
+         dStack = push(dStack, com);
+
+      case '>': 
+         dStack = addSimpleCommand(dStack, tmp); 
+         strcpy(tmp,"\0");
+         if (metRedirection > 0)
+         {
+             dStack = redirection(dStack, metRedirection);
+             metRedirection = 0;
+         }
+         metRedirection = 2;
+         break;
+      case '<': 
+         dStack = addSimpleCommand(dStack, tmp); 
+         strcpy(tmp,"\0");
+         if (metRedirection > 0)
+         {
+             dStack = redirection(dStack, metRedirection);
+             metRedirection = 0;
+         }
+         metRedirection = 1;
+         break;
+      case '|':
+        
+         dStack = addSimpleCommand(dStack, tmp); 
          strcpy(tmp, "\0");
-         dStack = push(dStack, temp);
+
+         if (metRedirection > 0)
+         {
+             dStack = redirection(dStack, metRedirection);
+             metRedirection = 0;
+         }
+
          input = get_next_byte (get_next_byte_argument);
          if ( input != '|')
          {
-            exit(1);
-            printf("| error\n");
+             c = (char)input;
+             comb[0] = c;
+             comb[1] = '\0';
+             strcat(tmp, comb);
+
+             temp = malloc(sizeof (struct command));
+            
+             temp->type = PIPE_COMMAND;
+             temp->status = 1;
+             temp->input = 0;
+             temp->output = 0;
+            
+             if (oStack == NULL)
+             { 
+                oStack = push(oStack, temp);
+             }
+             else if ((peek(oStack))->type < 2)
+             {
+                oStack = push(oStack, temp);
+             }
+             else 
+             {
+                dStack = pop(dStack, &com2);
+                dStack = pop(dStack, &com1);
+                oStack = pop(oStack, &com);
+                com->u.command[0] = malloc(sizeof(com->u));
+                com->u.command[1] = malloc(sizeof(com->u));
+                com->u.command[0] = com1;
+                com->u.command[1] = com2;
+                dStack = push(dStack, com);
+                oStack = push(oStack, temp);
+             }
          }
          else
          {
@@ -166,33 +300,30 @@ make_command_stream (int (*get_next_byte) (void *),
              }
              else 
              {
-                dStack = pop(dStack, &com2);
-                dStack = pop(dStack, &com1);
-                oStack = pop(oStack, &com);
-                com->u.command[0] = malloc(sizeof(com->u));
-                com->u.command[1] = malloc(sizeof(com->u));
-                com->u.command[0] = com1;
-                com->u.command[1] = com2;
-                dStack = push(dStack, com);
+                while ( oStack != NULL && (peek(oStack))->type > 2 )
+                {
+			dStack = pop(dStack, &com2);
+			dStack = pop(dStack, &com1);
+			oStack = pop(oStack, &com);
+			com->u.command[0] = malloc(sizeof(com->u));
+			com->u.command[1] = malloc(sizeof(com->u));
+			com->u.command[0] = com1;
+			com->u.command[1] = com2;
+			dStack = push(dStack, com);
+                }
                 oStack = push(oStack, temp);
              }
          }
-         strcpy(tmp,"\0");
          break;
       case '&': 
-         temp = malloc(sizeof (struct command));
-             
-         temp->type = SIMPLE_COMMAND;
-         temp->status = 1;
-         temp->input = 0;
-         temp->output = 0;
-         temp->u.word = malloc(sizeof (temp->u));
-         string = malloc(sizeof (char *));
-         *string = malloc(sizeof (tmp));
-         strcpy(*string, tmp);
-         temp->u.word = string;
+         dStack = addSimpleCommand(dStack, tmp);
          strcpy(tmp, "\0");
-         dStack = push(dStack, temp);
+
+         if (metRedirection > 0)
+         {
+             dStack = redirection(dStack, metRedirection);
+             metRedirection = 0;
+         }
 
          input = get_next_byte (get_next_byte_argument);
          if ( input != '&')
@@ -219,41 +350,71 @@ make_command_stream (int (*get_next_byte) (void *),
              }
              else 
              {
-                dStack = pop(dStack, &com2);
-                dStack = pop(dStack, &com1);
-                oStack = pop(oStack, &com);
-                com->u.command[0] = malloc(sizeof(com->u));
-                com->u.command[1] = malloc(sizeof(com->u));
-                com->u.command[0] = com1;
-                com->u.command[1] = com2;
-                dStack = push(dStack, com);
+                while ( oStack != NULL && (peek(oStack))->type > 2 )
+                {
+			dStack = pop(dStack, &com2);
+			dStack = pop(dStack, &com1);
+			oStack = pop(oStack, &com);
+			com->u.command[0] = malloc(sizeof(com->u));
+			com->u.command[1] = malloc(sizeof(com->u));
+			com->u.command[0] = com1;
+			com->u.command[1] = com2;
+			dStack = push(dStack, com);
+                }
                 oStack = push(oStack, temp);
              }
          }
-         strcpy(tmp,"\0");
          break;
       case ';': 
-         //printf("%s\n", tmp); 
-         strcpy(tmp,"\0");
-         break;
-      case '\n': 
-         temp = ( struct command *)malloc(sizeof (struct command));
-             
-         temp->type = SIMPLE_COMMAND;
+         dStack = addSimpleCommand(dStack, tmp);
+         strcpy(tmp, "\0");
+
+         if (metRedirection > 0)
+         {
+             dStack = redirection(dStack, metRedirection);
+             metRedirection = 0;
+         }
+
+         temp = malloc(sizeof (struct command));
+         
+         temp->type = SEQUENCE_COMMAND;
          temp->status = 1;
          temp->input = 0;
          temp->output = 0;
-         temp->u.word = malloc(sizeof (temp->u));
-         string = malloc(sizeof (char *));
-         *string = malloc(sizeof (tmp));
-         strcpy(*string, tmp);
-         temp->u.word = string;
-         dStack = push(dStack, temp);
+
+         if (oStack == NULL)
+         { 
+            oStack = push(oStack, temp);
+         }
+         else 
+         {
+		 while ( oStack != NULL )
+		 {
+			 dStack = pop(dStack, &com2);
+			 dStack = pop(dStack, &com1);
+			 oStack = pop(oStack, &com);
+			 com->u.command[0] = malloc(sizeof(com->u));
+			 com->u.command[1] = malloc(sizeof(com->u));
+			 com->u.command[0] = com1;
+			 com->u.command[1] = com2;
+			 dStack = push(dStack, com);
+		 }
+               oStack = push(oStack, temp);
+         }
+         
+         break;
+      case '\n': 
+         dStack = addSimpleCommand(dStack, tmp);
          strcpy(tmp,"\0");
+
+         if (metRedirection > 0)
+         {
+             dStack = redirection(dStack, metRedirection);
+             metRedirection = 0;
+         }
 
          while (oStack != NULL)
          {
-
                 dStack = pop(dStack, &com2);
                 dStack = pop(dStack, &com1);
                 oStack = pop(oStack, &com);
