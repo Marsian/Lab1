@@ -7,11 +7,17 @@ typedef struct command_stream *command_stream_t;
    the command stream will invoke GETBYTE (ARG) to get the next byte.
    GETBYTE will return the next input byte, or a negative number
    (setting errno) on failure.  */
-command_stream_t make_command_stream (int (*getbyte) (void *), void *arg);
+struct Node
+{
+   void * data;
+   struct Node * next;
+};
+
+struct Node ** make_command_stream (int (*getbyte) (void *), void *arg);
 
 /* Read a command from STREAM; return it, or NULL on EOF.  If there is
    an error, report the error and exit instead of returning.  */
-command_t read_command_stream (command_stream_t stream);
+command_t read_command_stream (struct Node ** stream);
 
 /* Print a command to stdout, for debugging.  */
 void print_command (command_t);

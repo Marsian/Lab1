@@ -49,7 +49,7 @@ main (int argc, char **argv)
   FILE *script_stream = fopen (script_name, "r");
   if (! script_stream)
     error (1, errno, "%s: cannot open", script_name);
-  command_stream_t command_stream =
+  struct Node ** command_stream =
     make_command_stream (get_next_byte, script_stream);
 
   command_t last_command = NULL;
