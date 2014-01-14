@@ -164,6 +164,20 @@ struct command * peek(struct Node * head)
   return head->data;
 }
 
+int searchParen ( struct Node * head)
+{
+    struct Node * tmp;
+    tmp = head;
+    if ( tmp == NULL) return 0;
+    while ( tmp != NULL) {
+        if ( (peek(tmp))->type == SUBSHELL_COMMAND) return 1;
+        tmp = tmp->next;
+    }
+
+    return 0;
+}
+
+
 int isEmpty(char * tmp)
 {
      while (*tmp != '\0')
@@ -268,7 +282,7 @@ make_command_stream (int (*get_next_byte) (void *),
          temp->output = 0;
 
          oStack = push(oStack, temp);
-         //printf("find a (\n");
+         printf("find a (\n");
          break;
       case ')':
          dStack = addSimpleCommand(dStack, tmp); 
@@ -303,8 +317,8 @@ make_command_stream (int (*get_next_byte) (void *),
 
       case '>': 
          if (isEmpty(tmp)) {
-             fprintf(stderr, "%d: Incorrect syntax: >\n\n", lineNumber);
-             exit(0);
+             //fprintf(stderr, "%d: Incorrect syntax: >\n\n", lineNumber);
+             //exit(0);
          }
          dStack = addSimpleCommand(dStack, tmp); 
          strcpy(tmp,"\0");
@@ -499,18 +513,37 @@ make_command_stream (int (*get_next_byte) (void *),
          }
          else 
          {
-		 while ( oStack != NULL )
-		 {
-			 dStack = pop(dStack, &com2);
-			 dStack = pop(dStack, &com1);
-			 oStack = pop(oStack, &com);
-			 com->u.command[0] = malloc(sizeof(com->u));
-			 com->u.command[1] = malloc(sizeof(com->u));
-			 com->u.command[0] = com1;
-			 com->u.command[1] = com2;
-			 dStack = push(dStack, com);
-		 }
-               oStack = push(oStack, temp);
+                 if (searchParen(oStack)) {
+		     while ( oStack != NULL )
+	             {
+				 dStack = pop(dStack, &com2);
+				 dStack = pop(dStack, &com1);
+				 oStack = pop(oStack, &com);
+				 com->u.command[0] = malloc(sizeof(com->u));
+				 com->u.command[1] = malloc(sizeof(com->u));
+				 com->u.command[0] = com1;
+				 com->u.command[1] = com2;
+				 dStack = push(dStack, com);
+		     }
+		     oStack = push(oStack, temp);
+                 } else {
+			 while (oStack != NULL)
+			 {
+				dStack = pop(dStack, &com2);
+				dStack = pop(dStack, &com1);
+				oStack = pop(oStack, &com);
+				
+				com->u.command[0] = malloc(sizeof(com->u));
+				com->u.command[1] = malloc(sizeof(com->u));
+				com->u.command[0] = com1;
+				com->u.command[1] = com2;
+				dStack = push(dStack, com);
+			 }
+			 dStack = pop(dStack, &com);
+			 *forest = push(*forest, com);
+			 lineNumber ++;
+			 break;
+                 }
          }
          
          break;
@@ -524,7 +557,7 @@ make_command_stream (int (*get_next_byte) (void *),
                  strcpy(tmp, "\0");
                  lineNumber ++;
                  break;
-             } else if ((peek(oStack))->type < 4) {
+             } else if ( oStack != NULL && (peek(oStack))->type < 4) {
                  strcpy(tmp, "\0");
                  lineNumber ++;
                  break;
