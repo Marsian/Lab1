@@ -182,7 +182,7 @@ int isEmpty(char * tmp)
 {
      while (*tmp != '\0')
      {
-         if (*tmp != ' ' && *tmp != '\t')
+         if (*tmp != ' ')
          {
              return 0;
          }
@@ -268,6 +268,7 @@ make_command_stream (int (*get_next_byte) (void *),
   while ( input != EOF )
   {
       c = (char)input;
+      //putchar (c);
       switch (c)
       {
       case '(': 
@@ -282,10 +283,12 @@ make_command_stream (int (*get_next_byte) (void *),
          temp->output = 0;
 
          oStack = push(oStack, temp);
-         printf("find a (\n");
+         //printf("find a (\n");
          break;
       case ')':
+        
          dStack = addSimpleCommand(dStack, tmp); 
+         //printf("COM: %s\n", *(peek(dStack))->u.word);
          strcpy(tmp,"\0");
 
          while ((peek(oStack))->type != 5 )
@@ -312,14 +315,14 @@ make_command_stream (int (*get_next_byte) (void *),
        
          dStack = push(dStack, com);
 
-        
-         //printf("\nOperator: %d\n", (peek(oStack))->type);
-
+         //printf("\nOperator: %d\n", (peek(dStack))->type);
+         break;
       case '>': 
          if (isEmpty(tmp)) {
              //fprintf(stderr, "%d: Incorrect syntax: >\n\n", lineNumber);
              //exit(0);
          }
+             //printf("Why>\n");
          dStack = addSimpleCommand(dStack, tmp); 
          strcpy(tmp,"\0");
          if (metRedirection > 0)
@@ -542,13 +545,18 @@ make_command_stream (int (*get_next_byte) (void *),
 			 }
 			 dStack = pop(dStack, &com);
 			 *forest = push(*forest, com);
-			 lineNumber ++;
 			 break;
                  }
          }
          
          break;
       case '\n': 
+         if ( searchParen(oStack)) {
+              input = ';';
+               ungetc (input, get_next_byte_argument);
+              break;
+         }
+
          if ( isEmpty(tmp) != 1)
          {
              dStack = addSimpleCommand(dStack, tmp);
@@ -558,7 +566,7 @@ make_command_stream (int (*get_next_byte) (void *),
                  strcpy(tmp, "\0");
                  lineNumber ++;
                  break;
-             } else if ( oStack != NULL && (peek(oStack))->type < 4 && (peek(dStack))->type == 5) {
+             } else if ( oStack != NULL && (peek(oStack))->type < 4 && (peek(dStack))->type != 5) {
                  strcpy(tmp, "\0");
                  lineNumber ++;
                  break;
