@@ -62,6 +62,43 @@ struct Node *  addSimpleCommand ( struct Node * head,
   temp->input = 0;
   temp->output = 0;
   temp->u.word = malloc(sizeof (temp->u));
+
+
+   
+printf("tmp is: %s\n",tmp);
+  int i = 0;
+  char  tmpstr[120];
+  while((tmp[i]==' ')||(tmp[i]=='\t'))
+     {i++;
+     }
+  strcpy(tmpstr,tmp+i);
+printf("tmpstr is: %s\n",tmpstr);
+int a=0; int b=0;
+i=0;
+strcpy(tmp,tmpstr);
+while(tmp[i]!='\0')
+{a=b;
+
+if ((tmp[i]==' ')||(tmp[i]=='\t'))
+ {b=1;
+ }
+else b=0;
+
+if((a==1)&&(b==1))
+ {strcpy(tmpstr,tmp+i);
+  strcpy(tmp+i-1,tmpstr);
+  i--;
+ }
+i++;
+}
+if ((i>0)&&(tmp[i-1]==' '))
+{tmp[i-1]='\0';}
+printf("tmp is: %s\n",tmp);
+
+//free(tmpstr);
+
+
+
   string = malloc(sizeof (char *));
   *string = malloc(sizeof (tmp));
   strcpy(*string, tmp);
