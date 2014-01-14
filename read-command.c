@@ -291,6 +291,12 @@ make_command_stream (int (*get_next_byte) (void *),
          //printf("COM: %s\n", *(peek(dStack))->u.word);
          strcpy(tmp,"\0");
 
+         if (metRedirection > 0)
+         {
+             dStack = redirection(dStack, metRedirection);
+             metRedirection = 0;
+         }
+
          while ((peek(oStack))->type != 5 )
          {
 		dStack = pop(dStack, &com2);
