@@ -34,6 +34,38 @@ struct Node * pop (struct Node * head, command_t * data)
   }
 }
 
+struct Node * deQueue (struct Node * head, command_t * data)
+{
+  if (head == NULL)
+  {
+     *data = NULL;
+     return NULL;
+  }
+  else
+  {
+      struct Node * temp = head;
+      if ( head -> next == NULL)
+      {
+          *data = head->data;
+          free(head);
+          return NULL;
+      }
+     
+      while (temp->next->next != NULL)
+      {
+          temp = temp->next;
+      }
+
+      *data = temp->next->data;
+      free(temp->next);
+      temp->next = NULL;
+      return head; 
+  }
+
+  return head;
+
+}
+
 struct Node * push (struct Node * head, void * data)
 {
   struct Node * temp;
@@ -62,42 +94,39 @@ struct Node *  addSimpleCommand ( struct Node * head,
   temp->input = 0;
   temp->output = 0;
   temp->u.word = malloc(sizeof (temp->u));
-
-
    
-printf("tmp is: %s\n",tmp);
-  int i = 0;
+  int i = 0, a = 0, b = 0;
   char  tmpstr[120];
   while((tmp[i]==' ')||(tmp[i]=='\t'))
-     {i++;
-     }
+  {
+     i++;
+  }
+
   strcpy(tmpstr,tmp+i);
-printf("tmpstr is: %s\n",tmpstr);
-int a=0; int b=0;
-i=0;
-strcpy(tmp,tmpstr);
-while(tmp[i]!='\0')
-{a=b;
+  i=0;
+  strcpy(tmp,tmpstr);
+  while(tmp[i]!='\0')
+  {
+     a = b;
 
-if ((tmp[i]==' ')||(tmp[i]=='\t'))
- {b=1;
- }
-else b=0;
+     if ((tmp[i]==' ')||(tmp[i]=='\t'))
+     {   
+         b=1;
+     }
+     else b=0;
 
-if((a==1)&&(b==1))
- {strcpy(tmpstr,tmp+i);
-  strcpy(tmp+i-1,tmpstr);
-  i--;
- }
-i++;
-}
-if ((i>0)&&(tmp[i-1]==' '))
-{tmp[i-1]='\0';}
-printf("tmp is: %s\n",tmp);
-
-//free(tmpstr);
-
-
+     if((a==1)&&(b==1))
+     {
+         strcpy(tmpstr,tmp+i);
+	 strcpy(tmp+i-1,tmpstr);
+         i--;	
+     } 
+     i++;
+  }
+  if ((i>0)&&(tmp[i-1]==' '))
+  {
+     tmp[i-1]='\0';
+  }
 
   string = malloc(sizeof (char *));
   *string = malloc(sizeof (tmp));
@@ -201,6 +230,7 @@ make_command_stream (int (*get_next_byte) (void *),
   struct Node * stack;
   stack = NULL;
   int input;
+  int lineNumber = 1;
   char c; 
   char tmp[120] = "\0";
   char comb[2];
@@ -272,6 +302,10 @@ make_command_stream (int (*get_next_byte) (void *),
          //printf("\nOperator: %d\n", (peek(oStack))->type);
 
       case '>': 
+         if (isEmpty(tmp)) {
+             fprintf(stderr, "%d: Incorrect syntax: >\n\n", lineNumber);
+             exit(0);
+         }
          dStack = addSimpleCommand(dStack, tmp); 
          strcpy(tmp,"\0");
          if (metRedirection > 0)
@@ -307,11 +341,12 @@ make_command_stream (int (*get_next_byte) (void *),
          input = get_next_byte (get_next_byte_argument);
          if ( input != '|')
          {
-             c = (char)input;
+             /*c = (char)input;
              comb[0] = c;
              comb[1] = '\0';
              strcat(tmp, comb);
-
+             */
+             input = ungetc (input, get_next_byte_argument);
              temp = malloc(sizeof (struct command));
             
              temp->type = PIPE_COMMAND;
@@ -323,7 +358,7 @@ make_command_stream (int (*get_next_byte) (void *),
              { 
                 oStack = push(oStack, temp);
              }
-             else if ((peek(oStack))->type < 2 || (peek(oStack))->type == 5)
+             else if ((peek(oStack))->type < 3 || (peek(oStack))->type == 5)
              {
                 oStack = push(oStack, temp);
              }
@@ -484,6 +519,16 @@ make_command_stream (int (*get_next_byte) (void *),
          {
              dStack = addSimpleCommand(dStack, tmp);
              strcpy(tmp, "\0");
+         }else {
+             if (dStack ==  NULL) {
+                 strcpy(tmp, "\0");
+                 lineNumber ++;
+                 break;
+             } else if ((peek(oStack))->type < 4) {
+                 strcpy(tmp, "\0");
+                 lineNumber ++;
+                 break;
+             }
          }
 
          if (metRedirection > 0)
@@ -506,6 +551,7 @@ make_command_stream (int (*get_next_byte) (void *),
          }
          dStack = pop(dStack, &com);
          *forest = push(*forest, com);
+         lineNumber ++;
          break;
       case '#':
          //printf("%s\n", tmp);
@@ -514,6 +560,7 @@ make_command_stream (int (*get_next_byte) (void *),
          {
          input = get_next_byte (get_next_byte_argument);
          }
+         lineNumber ++;
          break;
       default: 
          comb[0] = c;
@@ -540,7 +587,7 @@ read_command_stream (struct Node ** s)
   struct command * tmp;
   if (*s != NULL)
   {
-     *s = pop(*s, &tmp);
+     *s = deQueue(*s, &tmp);
      return tmp;
   }
   else 
