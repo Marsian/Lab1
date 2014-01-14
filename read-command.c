@@ -402,8 +402,11 @@ make_command_stream (int (*get_next_byte) (void *),
          }
          break;
       case ';': 
-         dStack = addSimpleCommand(dStack, tmp);
-         strcpy(tmp, "\0");
+         if ( isEmpty(tmp) != 1)
+         {
+             dStack = addSimpleCommand(dStack, tmp);
+             strcpy(tmp, "\0");
+         }
 
          if (metRedirection > 0)
          {
@@ -440,10 +443,10 @@ make_command_stream (int (*get_next_byte) (void *),
          
          break;
       case '\n': 
-         if (strcmp(tmp, "\0"))
+         if ( isEmpty(tmp) != 1)
          {
-            dStack = addSimpleCommand(dStack, tmp);
-            strcpy(tmp,"\0");
+             dStack = addSimpleCommand(dStack, tmp);
+             strcpy(tmp, "\0");
          }
 
          if (metRedirection > 0)
