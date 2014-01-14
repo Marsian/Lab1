@@ -514,8 +514,9 @@ make_command_stream (int (*get_next_byte) (void *),
          else 
          {
                  if (searchParen(oStack)) {
-		     while ( oStack != NULL )
+		     while ( oStack != NULL) 
 	             {
+                        if ((peek(oStack))->type == 5) break;
 				 dStack = pop(dStack, &com2);
 				 dStack = pop(dStack, &com1);
 				 oStack = pop(oStack, &com);
@@ -557,7 +558,7 @@ make_command_stream (int (*get_next_byte) (void *),
                  strcpy(tmp, "\0");
                  lineNumber ++;
                  break;
-             } else if ( oStack != NULL && (peek(oStack))->type < 4) {
+             } else if ( oStack != NULL && (peek(oStack))->type < 4 && (peek(dStack))->type == 5) {
                  strcpy(tmp, "\0");
                  lineNumber ++;
                  break;
