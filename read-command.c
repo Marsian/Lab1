@@ -324,13 +324,13 @@ make_command_stream (int (*get_next_byte) (void *),
          //printf("\nOperator: %d\n", (peek(dStack))->type);
          break;
       case '>': 
-         if (isEmpty(tmp)) {
+         if (isEmpty(tmp)==0) {
+            dStack = addSimpleCommand(dStack, tmp); 
+            strcpy(tmp,"\0");
              //fprintf(stderr, "%d: Incorrect syntax: >\n\n", lineNumber);
              //exit(0);
          }
              //printf("Why>\n");
-         dStack = addSimpleCommand(dStack, tmp); 
-         strcpy(tmp,"\0");
          if (metRedirection > 0)
          {
              dStack = redirection(dStack, metRedirection);
@@ -339,8 +339,10 @@ make_command_stream (int (*get_next_byte) (void *),
          metRedirection = 2;
          break;
       case '<': 
-         dStack = addSimpleCommand(dStack, tmp); 
-         strcpy(tmp,"\0");
+         if (isEmpty(tmp)==0) {
+            dStack = addSimpleCommand(dStack, tmp); 
+            strcpy(tmp,"\0");
+         }   
          if (metRedirection > 0)
          {
              dStack = redirection(dStack, metRedirection);
