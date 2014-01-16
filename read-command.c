@@ -249,9 +249,11 @@ make_command_stream (int (*get_next_byte) (void *),
   char tmp[120] = "\0";
   char comb[2];
   char ** string;
+  char  wholeline[1000] = "\0";
   string = NULL;
   int metRedirection = 0;
   int inSubshell = 0;
+  int thereserror=0;
   struct command * temp;
   struct command * com; 
   struct command * com1;
@@ -268,12 +270,25 @@ make_command_stream (int (*get_next_byte) (void *),
   while ( input != EOF )
   {
       c = (char)input;
+      if ((c == '`') || (c== '"')|| (c == '\'')|| (c == '\t')) thereserror ++;
+      comb[0]=c;
+      comb[1]='\0';
+      strcat(wholeline,comb);
+      
       //putchar (c);
       switch (c)
       {
       case '(': 
          //printf("%s\n", tmp); 
          //if ( tmp == "\0")
+         if ((input=get_next_byte (get_next_byte_argument))=='(') {
+            thereserror++;
+            comb[0]=input;
+            comb[1]='\0';
+            strcat(wholeline,comb);break;}
+         else {
+             input = ungetc (input, get_next_byte_argument);
+             }
          strcpy(tmp,"\0");
          temp = malloc(sizeof (struct command));
          
@@ -287,6 +302,14 @@ make_command_stream (int (*get_next_byte) (void *),
          break;
       case ')':
         
+         if ((input=get_next_byte (get_next_byte_argument))==')') {
+            thereserror++;
+            comb[0]=input;
+            comb[1]='\0';
+            strcat(wholeline,comb);break;}
+         else {
+             input = ungetc (input, get_next_byte_argument);
+             }
          dStack = addSimpleCommand(dStack, tmp); 
          //printf("COM: %s\n", *(peek(dStack))->u.word);
          strcpy(tmp,"\0");
@@ -324,12 +347,23 @@ make_command_stream (int (*get_next_byte) (void *),
          //printf("\nOperator: %d\n", (peek(dStack))->type);
          break;
       case '>': 
+         if ((input=get_next_byte (get_next_byte_argument))=='>') {
+            thereserror++;
+            comb[0]=input;
+            comb[1]='\0';
+            strcat(wholeline,comb);break;}
+         else {
+             input = ungetc (input, get_next_byte_argument);
+             }
          if (isEmpty(tmp)==0) {
             dStack = addSimpleCommand(dStack, tmp); 
-            strcpy(tmp,"\0");
+            strcpy(tmp,"\0");}
+         else {
+            if (dStack == NULL) {thereserror++;break;} 
+            else if ((peek(dStack)->type)!=5) {thereserror++;break;}
+             }
              //fprintf(stderr, "%d: Incorrect syntax: >\n\n", lineNumber);
              //exit(0);
-         }
              //printf("Why>\n");
          if (metRedirection > 0)
          {
@@ -339,10 +373,25 @@ make_command_stream (int (*get_next_byte) (void *),
          metRedirection = 2;
          break;
       case '<': 
+         if ((input=get_next_byte (get_next_byte_argument))=='<') {
+            thereserror++;
+            comb[0]=input;
+            comb[1]='\0';
+            strcat(wholeline,comb);break;}
+         else {
+             input = ungetc (input, get_next_byte_argument);
+             }
          if (isEmpty(tmp)==0) {
             dStack = addSimpleCommand(dStack, tmp); 
-            strcpy(tmp,"\0");
-         }   
+            strcpy(tmp,"\0");}
+         else {
+            if (dStack == NULL) {thereserror++;break;} 
+            else if ((peek(dStack)->type)!=5) {thereserror++;break;}
+             }
+         //if (isEmpty(tmp)==0) {
+         //   dStack = addSimpleCommand(dStack, tmp); 
+         //   strcpy(tmp,"\0");
+         //}   
          if (metRedirection > 0)
          {
              dStack = redirection(dStack, metRedirection);
@@ -351,11 +400,18 @@ make_command_stream (int (*get_next_byte) (void *),
          metRedirection = 1;
          break;
       case '|':
-         if ( isEmpty(tmp) == 0)
-         { 
-             dStack = addSimpleCommand(dStack, tmp); 
-             strcpy(tmp, "\0");
-         }
+         if (isEmpty(tmp)==0) {
+            dStack = addSimpleCommand(dStack, tmp); 
+            strcpy(tmp,"\0");}
+         else {
+            if (dStack == NULL) {thereserror++;break;} 
+            else if ((peek(dStack)->type)!=5) {thereserror++;break;}
+             }
+         //if ( isEmpty(tmp) == 0)
+         //{ 
+         //    dStack = addSimpleCommand(dStack, tmp); 
+         //    strcpy(tmp, "\0");
+        // }
 
          if (metRedirection > 0)
          {
@@ -403,6 +459,20 @@ make_command_stream (int (*get_next_byte) (void *),
          else
          {
 
+         comb[0]=input;
+         comb[1]='\0';
+         strcat(wholeline,comb);
+         input = get_next_byte (get_next_byte_argument);
+         if (input == '|'){
+            thereserror++;
+            
+            comb[0]=input;
+            comb[1]='\0';
+            strcat(wholeline,comb);
+            break;
+         }
+         else 
+             input = ungetc (input, get_next_byte_argument);
          /*while (dStack != NULL)
          {
              dStack = pop(dStack, &com2);
@@ -445,14 +515,20 @@ make_command_stream (int (*get_next_byte) (void *),
          }
          break;
       case '&': 
-         if ( isEmpty(tmp) != 1)
-         {
-             dStack = addSimpleCommand(dStack, tmp);
-             strcpy(tmp, "\0");
-         }
-
+         if (isEmpty(tmp)==0) {
+            dStack = addSimpleCommand(dStack, tmp); 
+            strcpy(tmp,"\0");}
+         else {
+            if (dStack == NULL) {thereserror++;break;} 
+            else if ((peek(dStack)->type)!=5) {thereserror++;break;}
+             }
+         //if ( isEmpty(tmp) != 1)
+         //{
+         //    dStack = addSimpleCommand(dStack, tmp);
+         //    strcpy(tmp, "\0");
+         //}
          if (metRedirection > 0)
-         {
+         {  // printf("fuck up here\n");
              dStack = redirection(dStack, metRedirection);
              metRedirection = 0;
          }
@@ -460,11 +536,19 @@ make_command_stream (int (*get_next_byte) (void *),
          input = get_next_byte (get_next_byte_argument);
          if ( input != '&')
          {
-            exit(1);
-            printf("& error\n");
+           // printf("%d syntax & error\n", lineNumber);
+           // depthTraverse(peek(dStack));
+           // exit(1);
+           
+            thereserror++;
+             input = ungetc (input, get_next_byte_argument);
+            break;
          }
          else
          {
+         comb[0]=input;
+         comb[1]='\0';
+         strcat(wholeline,comb);
              temp = malloc(sizeof (struct command));
              
              temp->type = AND_COMMAND;
@@ -497,13 +581,30 @@ make_command_stream (int (*get_next_byte) (void *),
                 oStack = push(oStack, temp);
              }
          }
+       // printf("stack top after AND is:\n");
+       // depthTraverse(peek(dStack));
          break;
       case ';': 
-         if ( isEmpty(tmp) != 1)
-         {
-             dStack = addSimpleCommand(dStack, tmp);
-             strcpy(tmp, "\0");
-         }
+         if ((input=get_next_byte (get_next_byte_argument))==';') {
+            thereserror++;
+            comb[0]=input;
+            comb[1]='\0';
+            strcat(wholeline,comb);break;}
+         else {
+             input = ungetc (input, get_next_byte_argument);
+             }
+         if (isEmpty(tmp)==0) {
+            dStack = addSimpleCommand(dStack, tmp); 
+            strcpy(tmp,"\0");}
+         else {
+            if (dStack == NULL) {thereserror++;break;} 
+            else if ((peek(dStack)->type)!=5) {thereserror++;break;}
+             }
+         //if ( isEmpty(tmp) != 1)
+         //{
+         //    dStack = addSimpleCommand(dStack, tmp);
+         //    strcpy(tmp, "\0");
+         //}
 
          if (metRedirection > 0)
          {
@@ -518,12 +619,12 @@ make_command_stream (int (*get_next_byte) (void *),
          temp->input = 0;
          temp->output = 0;
 
-         if (oStack == NULL)
+        /* if (oStack == NULL)
          { 
             oStack = push(oStack, temp);
-         }
-         else 
-         {
+         }*/
+        // else 
+        // {
                  if (searchParen(oStack)) {
 		     while ( oStack != NULL) 
 	             {
@@ -555,16 +656,31 @@ make_command_stream (int (*get_next_byte) (void *),
 			 *forest = push(*forest, com);
 			 break;
                  }
-         }
+        // }
          
          break;
-      case '\n': 
+      case '\n':
+         if (thereserror)
+          {  printf("%d: Incorrect Syntax %s",lineNumber,wholeline);exit(1);
+          }
+         else{int i=0;
+              while (wholeline[i]!='\0'){wholeline[i]='\0';i++;}
+              
+             
+          } 
          if ( searchParen(oStack)) {
               input = ';';
                ungetc (input, get_next_byte_argument);
               break;
          }
 
+        /* if (isEmpty(tmp)==0) {
+            dStack = addSimpleCommand(dStack, tmp); 
+            strcpy(tmp,"\0");}
+         else {
+            if (dStack == NULL) {strcpy(tmp, "\0");lineNumber ++;break;} 
+            else if (oStack != NULL && (peek(dStack)->type) < 4 && (peek(dStack)->type)!=5) {strcpy(tmp, "\0");lineNumber ++;break;}
+             }*/
          if ( isEmpty(tmp) != 1)
          {
              dStack = addSimpleCommand(dStack, tmp);
@@ -611,11 +727,14 @@ make_command_stream (int (*get_next_byte) (void *),
          input = get_next_byte (get_next_byte_argument);
          }
          lineNumber ++;
+         int i=0;
+         while(wholeline[i]!='\0'){wholeline[i]='\0';i++;}
          break;
       default: 
          comb[0] = c;
          comb[1] = '\0';
          strcat(tmp, comb);
+         printf("tmp is %s\n",tmp);
       }
       input = get_next_byte (get_next_byte_argument);
   }  
