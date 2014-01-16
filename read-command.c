@@ -254,6 +254,7 @@ make_command_stream (int (*get_next_byte) (void *),
   int metRedirection = 0;
   int inSubshell = 0;
   int thereserror=0;
+  int paren=0;
   struct command * temp;
   struct command * com; 
   struct command * com1;
@@ -280,7 +281,8 @@ make_command_stream (int (*get_next_byte) (void *),
       {
       case '(': 
          //printf("%s\n", tmp); 
-         //if ( tmp == "\0")
+         //if ( tmp == "\0")i
+         paren++;
          if ((input=get_next_byte (get_next_byte_argument))=='(') {
             thereserror++;
             comb[0]=input;
@@ -301,7 +303,8 @@ make_command_stream (int (*get_next_byte) (void *),
          //printf("find a (\n");
          break;
       case ')':
-        
+         if (paren == 0) {thereserror++; break;}
+         else paren--;
          if ((input=get_next_byte (get_next_byte_argument))==')') {
             thereserror++;
             comb[0]=input;
@@ -661,7 +664,7 @@ make_command_stream (int (*get_next_byte) (void *),
          break;
       case '\n':
          if (thereserror)
-          {  printf("%d: Incorrect Syntax %s",lineNumber,wholeline);exit(1);
+          {  printf("%d: Incorrect Syntax here %s",lineNumber,wholeline);exit(1);
           }
          else{int i=0;
               while (wholeline[i]!='\0'){wholeline[i]='\0';i++;}
@@ -747,6 +750,9 @@ make_command_stream (int (*get_next_byte) (void *),
      printf("\n");
   }*/
 
+         if (paren!=0)
+          {  printf("%d: Incorrect Syntax %s\n",lineNumber,wholeline);exit(1);
+          }
   return forest;
 }
 
