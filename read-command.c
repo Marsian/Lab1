@@ -17,6 +17,9 @@
   struct Node *next;
 };*/
 
+ int lineNumber=1;
+ int thereserror =0;
+ char wholeline[1000]="\0";
 struct Node * pop (struct Node * head, command_t * data)
 {
   if (head == NULL) 
@@ -143,8 +146,12 @@ struct Node * redirection ( struct Node * head,
   struct command * temp1, * temp2;
   head = pop(head, &temp1);
   head = pop(head, &temp2);
+if (temp2==NULL) {
+     
+     fprintf(stderr,"line %d: %s\n",lineNumber,wholeline);exit(1);
 
-  if ( tmp == 1)
+     }
+ else if ( tmp == 1)
   {
      temp2->input = *(temp1->u.word);
   }
@@ -233,7 +240,6 @@ void depthTraverse( struct command * p)
    complete the incomplete type declaration in command.h.  */
 typedef struct Node * command_stream;
 
-
 struct Node **
 make_command_stream (int (*get_next_byte) (void *),
 		     void *get_next_byte_argument)
@@ -244,16 +250,16 @@ make_command_stream (int (*get_next_byte) (void *),
   struct Node * stack;
   stack = NULL;
   int input;
-  int lineNumber = 1;
+//  int lineNumber = 1;
   char c; 
   char tmp[120] = "\0";
   char comb[2];
   char ** string;
-  char  wholeline[1000] = "\0";
+//  char  wholeline[1000] = "\0";
   string = NULL;
   int metRedirection = 0;
   int inSubshell = 0;
-  int thereserror=0;
+//  int thereserror=0;
   int paren=0;
   struct command * temp;
   struct command * com; 
@@ -271,10 +277,10 @@ make_command_stream (int (*get_next_byte) (void *),
   while ( input != EOF )
   {
       c = (char)input;
-      if ((c == '`') || (c== '"')|| (c == '\'')|| (c == '\t')) thereserror ++;
+      if ((c == '`') || (c == '\'')|| (c == '\t')) thereserror ++;
       comb[0]=c;
       comb[1]='\0';
-      strcat(wholeline,comb);
+      if (c!= '\n')strcat(wholeline,comb);
       
       //putchar (c);
       switch (c)
@@ -664,7 +670,9 @@ make_command_stream (int (*get_next_byte) (void *),
          break;
       case '\n':
          if (thereserror)
-          {  printf("%d: Incorrect Syntax here %s",lineNumber,wholeline);exit(1);
+          { // printf("test-p-bad.sh: line 1: syntax error near unexpected token `newline'\n");printf("test-p-bad.sh: line 1: ``'\n");exit(1);
+
+            fprintf(stderr,"line %d: %s\n",lineNumber,wholeline);exit(1);
           }
          else{int i=0;
               while (wholeline[i]!='\0'){wholeline[i]='\0';i++;}
@@ -694,9 +702,11 @@ make_command_stream (int (*get_next_byte) (void *),
                  lineNumber ++;
                  break;
              } else if ( oStack != NULL && (peek(oStack))->type < 4 && (peek(dStack))->type != 5) {
-                 strcpy(tmp, "\0");
-                 lineNumber ++;
-                 break;
+                
+            fprintf(stderr,"line %d: %s\n",lineNumber,wholeline);exit(1);
+                // strcpy(tmp, "\0");
+                // lineNumber ++;
+                // break;
              }
          }
 
@@ -737,7 +747,7 @@ make_command_stream (int (*get_next_byte) (void *),
          comb[0] = c;
          comb[1] = '\0';
          strcat(tmp, comb);
-         printf("tmp is %s\n",tmp);
+      //   printf("tmp is %s\n",tmp);
       }
       input = get_next_byte (get_next_byte_argument);
   }  
@@ -751,7 +761,7 @@ make_command_stream (int (*get_next_byte) (void *),
   }*/
 
          if (paren!=0)
-          {  printf("%d: Incorrect Syntax %s\n",lineNumber,wholeline);exit(1);
+          {  fprintf(stderr,"%d: Incorrect Syntax %s\n",lineNumber,wholeline);exit(1);
           }
   return forest;
 }
