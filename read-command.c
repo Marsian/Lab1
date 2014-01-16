@@ -33,6 +33,7 @@ struct Node * pop (struct Node * head, command_t * data)
       *data = head->data;
       head = head->next;
       free(temp);
+
       return head;
   }
 }
@@ -184,6 +185,19 @@ int searchParen ( struct Node * head)
     return 0;
 }
 
+int counter ( struct Node * head)
+{
+   struct Node * tmp;
+   int counter = 0;
+   tmp = head;
+   if (tmp == NULL) return 0;
+   while ( tmp != NULL) {
+      tmp = tmp -> next;
+      counter ++;
+   }
+
+   return counter;
+}
 
 int isEmpty(char * tmp)
 {
