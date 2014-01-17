@@ -154,11 +154,19 @@ if (temp2==NULL) {
      }
  else if ( tmp == 1)
   {
+     if (temp2->input!=NULL) {
+      
+     fprintf(stderr,"line %d: %s\n",lineNumber,wholeline);exit(1);
+     }
      temp2->input = *(temp1->u.word);
   }
-  else
-  {
-     temp2->output = *(temp1->u.word);
+  else{
+       
+     if (temp2->output!=NULL) {
+      
+     fprintf(stderr,"line %d: %s\n",lineNumber,wholeline);exit(1);}
+    
+      temp2->output = *(temp1->u.word);
   }
 
   free(temp1);
