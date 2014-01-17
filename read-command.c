@@ -711,17 +711,24 @@ make_command_stream (int (*get_next_byte) (void *),
              dStack = addSimpleCommand(dStack, tmp);
              strcpy(tmp, "\0");
          }else {
-             if (dStack ==  NULL) {
+             if (metRedirection >0) 
+               {
+            fprintf(stderr,"line %d: %s\n",lineNumber,wholeline);exit(1);
+                }
+             if (dStack ==  NULL|| (counter(dStack)!=counter(oStack)+1) ) {
                  strcpy(tmp, "\0");
                  lineNumber ++;
                  break;
-             } else if ( oStack != NULL && (peek(oStack))->type < 4 && (peek(dStack))->type != 5) {
+             }
+             
+          /* else if ( oStack != NULL && (peek(oStack))->type < 4 && (peek(dStack))->type != 5) {
                 
             fprintf(stderr,"line %d: %s\n",lineNumber,wholeline);exit(1);
                 // strcpy(tmp, "\0");
                 // lineNumber ++;
                 // break;
-             }
+             }*/
+           
          }
 
          if (metRedirection > 0)
@@ -774,8 +781,14 @@ make_command_stream (int (*get_next_byte) (void *),
      printf("\n");
   }*/
 
-         if (paren!=0)
-          {  fprintf(stderr,"%d: Incorrect Syntax %s\n",lineNumber,wholeline);exit(1);
+         if (paren!=0 )
+          {  fprintf(stderr,"%d: incorrect syntax %s\n",lineNumber,wholeline);
+             exit(1);
+          }
+         if (dStack!=NULL && (counter(dStack)!=counter(oStack)+1)) {
+          
+            fprintf(stderr,"%d: incorrect syntax %s\n",lineNumber,wholeline);
+             exit(1);
           }
   return forest;
 }
