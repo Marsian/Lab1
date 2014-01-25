@@ -97,8 +97,7 @@ struct Node *  addSimpleCommand ( struct Node * head,
   temp->status = 1;
   temp->input = 0;
   temp->output = 0;
-  temp->u.word = malloc(sizeof (temp->u));
-   
+     
   int i = 0, a = 0, b = 0;
   char  tmpstr[120];
   while((tmp[i]==' ')||(tmp[i]=='\t'))
@@ -132,12 +131,32 @@ struct Node *  addSimpleCommand ( struct Node * head,
      tmp[i-1]='\0';
   }
 
-  string = malloc(sizeof (char *));
-  *string = malloc(sizeof (tmp));
-  strcpy(*string, tmp);
-  temp->u.word = string;
-  head = push(head, temp);
+  int counter = 0;
+  for (i = 0; tmp[i] != '\0'; i++) {
+	if (tmp[i] == ' ') counter++;
+  }
 
+  char * p;
+  temp->u.word = (char **)malloc(sizeof (char *)*(counter + 2));
+  temp->u.word[counter+1] = NULL;
+  p = strtok(tmp, " ");  
+  for ( i = 0; i < counter + 1; i++ ) {
+        temp->u.word[i] = (char *)malloc(sizeof (char)*120);
+  }
+  strcpy(temp->u.word[0], p);
+  for ( i = 1; i < counter + 1; i++) {
+        p = strtok(NULL, " ");
+	strcpy(temp->u.word[i], p); 
+  }
+
+  //string = malloc(sizeof (char *));
+  //*string = malloc(sizeof (tmp));
+  //strcpy(*string, tmp);
+  //temp->u.word = string;
+  /*for ( i = 0; i < counter + 1; i++) {
+     printf("%s ", temp->u.word[i]);
+  }*/
+  head = push(head, temp);
   return head;
 }
 

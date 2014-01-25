@@ -1,4 +1,6 @@
-This is a skeleton for CS 111 Lab 1.
+This is the Lab1a from Yanxi Wang (604249838) and Pengyuan Du (204100962)
 
-Replace this README file with notes on your implementation.
-Mentions any special features or limitations.
+ Our implementation parse the basic operators of shell script, including "||", "&&", "|", ";", "<>" and "()".
+ We also output syntax error for invalid script.
+ This program can successfully go through the "test-p-ok.sh" and "test-p-bad.sh".
+ We declare structure "Node" in "command.h" to implement the stack.
