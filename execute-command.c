@@ -151,6 +151,7 @@ execute_command (command_t c, int time_travel)
 	}
 	case SUBSHELL_COMMAND: {
 		execute_command(cmd->u.subshell_command, time_travel);
+		break;
 	}
 	default: abort();
 	}
