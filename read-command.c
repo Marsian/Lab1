@@ -20,6 +20,7 @@
  int lineNumber=1;
  int thereserror =0;
  char wholeline[1000]="\0";
+
 struct Node * pop (struct Node * head, command_t * data)
 {
   if (head == NULL) 
@@ -38,6 +39,26 @@ struct Node * pop (struct Node * head, command_t * data)
   }
 }
 
+struct Node * push (struct Node * head, void * data)
+{
+  struct Node * temp;
+  temp = ( struct Node *)malloc(sizeof (struct Node));
+  
+  if (temp == NULL)
+  {
+      exit(0);
+  }
+
+  temp -> data = data;
+  temp -> next = head;
+  head = temp;
+  return head;
+}
+
+struct command * peek(struct Node * head)
+{
+  return head->data;
+}
 struct Node * deQueue (struct Node * head, command_t * data)
 {
   if (head == NULL)
@@ -70,21 +91,6 @@ struct Node * deQueue (struct Node * head, command_t * data)
 
 }
 
-struct Node * push (struct Node * head, void * data)
-{
-  struct Node * temp;
-  temp = ( struct Node *)malloc(sizeof (struct Node));
-  
-  if (temp == NULL)
-  {
-      exit(0);
-  }
-
-  temp -> data = data;
-  temp -> next = head;
-  head = temp;
-  return head;
-}
 
 struct Node *  addSimpleCommand ( struct Node * head,
                                   char * tmp)
@@ -194,10 +200,6 @@ if (temp2==NULL) {
   return head;
 }
 
-struct command * peek(struct Node * head)
-{
-  return head->data;
-}
 
 int searchParen ( struct Node * head)
 {
