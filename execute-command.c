@@ -21,6 +21,7 @@ struct depend {
 	Node * to;
 	Node * from; 
 	int status;
+	pid_t pid;
 };
 
 struct depend *  peekD(Node * s)
@@ -76,7 +77,7 @@ void deQuotion (char ** arg) {
 	int i;
 	int j;
 	for ( i = 0; arg[i] != NULL; i++) {
-		if (arg[i][0] == '\"') {
+		if (arg[i][0] == '\"' || arg[i][0] == '\'') {
 			for (j = 0; arg[i][j] != '\0'; j++) {
 			   arg[i][j] = arg[i][j+1];
 			}
@@ -199,14 +200,30 @@ execute_command (command_t c, int time_travel)
 	}   	
 	
 	case SEQUENCE_COMMAND: {
-		child = fork();
+		int i;
+		for (i = 0; i < 2; i ++) {
+			child = fork();
+			if (child == 0) {
+				execute_command(cmd->u.command[i], time_travel);
+				exit(0);
+			} else if (child > 0) {
+				//wait for the child process
+				waitpid(child, &status, 0);
+				//harvest the execution status
+				cmd->status = status;
+			} else
+				error(1, 0, "cannot fork!");
+		}
+
+		break;
+		/*
 		if (child == 0) {
 			execute_command(cmd->u.command[0], time_travel);
 		} else if (child > 0) {
 			execute_command(cmd->u.command[1], time_travel);
 		} else
 			error(1, 0, "cannot fork!");
-		break;
+		break;*/
 	}
 	case SUBSHELL_COMMAND: {
 		execute_command(cmd->u.subshell_command, time_travel);
@@ -235,6 +252,28 @@ void deleteEdge (struct Node ** s, command_t cmd)
 	}
 }
 
+struct Node * delete (struct Node * s, struct Node * node)
+{
+	Node * it, * jt;
+	command_t tmp;
+	
+	if (s == NULL) return NULL;
+	if (s == node) {
+	   it = s->next;
+	   free (s);
+	   return it;
+	}
+
+	for (it = s; it->next != NULL; it = it -> next) {
+		if (it->next == node) {
+			jt = it->next;
+			it->next = jt->next;		
+		}
+	}
+
+	return s;
+}
+
 
 void execute_parallel_command (struct Node * s)
 {
@@ -248,8 +287,9 @@ void execute_parallel_command (struct Node * s)
 		dep = (struct depend *)malloc(sizeof(struct depend));
 		dep->tree = command;
 		dep->status = 0;
-		dep->input = (char **)malloc(sizeof(char *)*50);
-		dep->output = (char **)malloc(sizeof(char *)*50);
+		dep->pid = 0;
+		dep->input = (char **)malloc(sizeof(char *)*120);
+		dep->output = (char **)malloc(sizeof(char *)*120);
 		char ** intmp, ** outtmp;
 		intmp = dep->input;
 		outtmp = dep->output;
@@ -301,6 +341,8 @@ void execute_parallel_command (struct Node * s)
 	for (; it != NULL; it = it->next) {
 		char ** k;
 		char ** h;
+		char ** g;
+		int flag;
 		/*if (*k)printf("%s\n", *k);
 		while(*++k) {
 			printf("%s\n", *k);
@@ -311,24 +353,34 @@ void execute_parallel_command (struct Node * s)
 		for (; jt != it && jt != NULL; jt = jt->next) {
 			 h = peekD(jt)->output;
 			 k = peekD(it)->input;
+			 g = peekD(it)->output;
+			 flag = 0;
 			 for (; *h != NULL; h++) {
 				for (; *k != NULL; k++) {
-					if (strcmp(*k, *h) == 0) {
-						peekD(jt)->to = push(peekD(jt)->to, peekD(it)->tree);
-						peekD(it)->from = push(peekD(it)->from, peekD(jt)->tree);  
-					}	
+					if (strcmp(*k, *h) == 0) 
+						flag = 1;
+				}
+
+				for (; *g != NULL; g ++) {
+					if (strcmp(*g, *h) == 0) 
+						flag = 1;
 				}
 			 }
+			 if (flag)
+			 	peekD(it)->from = push(peekD(it)->from, peekD(jt)->tree);  
 		}
 	}
 
         int flag = 1;
+	Node * cmdStack = NULL;
+	Node * pidStack = NULL;
 	while (flag) {
 	   	flag = 0;
-		Node * stack = NULL, * tmp, * pidStack = NULL;
+		Node  * tmp;
 		command_t cmd;
 		Node * jt, * kt;
 
+		/*
 		// Find all runnable processes, push them to the stack
 		// Set status of the processed to be runned
 		for (it = dependForest; it != NULL; it = it -> next) {
@@ -367,6 +419,84 @@ void execute_parallel_command (struct Node * s)
 			}
 		}
 		//break;
+		*/
+	
+		for (it = dependForest; it != NULL; it = it -> next) {
+		   	if (peekD(it)->status == 0) 
+			   flag = 1;
+			/*if (peekD(it)->status == 0) {
+				if (peekD(it)->from != NULL) {
+					printf("%d\n",peek( peekD(it)->from)->type);
+				}
+			}*/
+			//printf("HERE\n");
+			if (peekD(it)->from == NULL && peekD(it)->status == 0) {
+			   	command_t com = peekD(it)->tree;
+		   		pid_t  child;
+				child = fork();
+				peekD(it)->status = 1;
+			        if (child == 0) {
+					execute_command(com, 1);
+					exit(0);
+			        } else {
+				   	//printf("MAY\n");
+			   		//pidStack = push(pidStack, child);
+					//cmdStack = push(cmdStack, com);
+					peekD(it)->pid = child;
+				}
+			} 
 		
+			if (peekD(it)->pid != 0) {
+			 	int stat = 1;
+				stat = waitpid(peekD(it)->pid, 0, WNOHANG);
+				if (stat != 0) {
+			           for (kt = dependForest; kt != NULL; kt = kt->next) {
+					deleteEdge(&(peekD(kt)->from), peekD(it)->tree);
+				   }
+				   peekD(it)->pid = 0;
+				} else {
+				   flag = 1;  
+				} 
+			}	
+		}
+
+		/*
+		for (it = pidStack, jt = cmdStack; it != NULL; it = it -> next, jt = jt -> next) {
+		   	int stat = 1;
+			//printf("CHECK\n");
+			stat = waitpid(*((pid_t *)(it->data)),(int *) 0, WNOHANG);
+			   //printf("%d\n", stat);
+			if (stat != 0) {
+			   //printf("%d\n", stat);
+				for (kt = dependForest; kt != NULL; kt = kt->next) {
+					deleteEdge(&(peekD(kt)->from), peek(jt));
+				}
+				pidStack = delete(pidStack, it);
+				cmdStack = delete(cmdStack, jt);
+				printf("WHY\n");
+				break;
+			}
+		}*/
+
+		
+	}
+
+        
+	while ( dependForest != NULL) {
+	   int i;
+	   dep = peekD(dependForest);
+	   char ** tmp;
+	   tmp = dep->input;
+	   for ( ; *tmp != NULL; tmp++) {
+		free(*tmp);
+	   }
+	   free (dep->input);
+	   tmp = dep->output;
+	   for ( ; *tmp != NULL; tmp++) {
+		free(*tmp);
+	   }
+	   free(dep->output);
+	   dependForest = pop(dependForest, &command);
+	   free(dep);
 	}
 }

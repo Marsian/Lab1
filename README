@@ -1,4 +1,4 @@
-This is the Lab1a from Yanxi Wang (604249838) and Pengyuan Du (204100962)
+This is the Lab1c from Yanxi Wang (604249838) and Pengyuan Du (204100962)
 
  Our implementation parse the basic operators of shell script, including "||", "&&", "|", ";", "<>" and "()".
  We also output syntax error for invalid script.

@@ -71,6 +71,10 @@ main (int argc, char **argv)
 	      }
 	  }
      }
-
+	
+	/*while ( *command_stream != NULL) {
+		*command_stream = pop(*command_stream, &command);
+		free(command);
+	}*/
   return print_tree || !last_command ? 0 : command_status (last_command);
 }

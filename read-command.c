@@ -320,7 +320,7 @@ make_command_stream (int (*get_next_byte) (void *),
   while ( input != EOF )
   {
       c = (char)input;
-      if ((c == '`') || (c == '\'')|| (c == '\t')) thereserror ++;
+      if ((c == '`') || (c == '\t')) thereserror ++;
       comb[0]=c;
       comb[1]='\0';
       if (c!= '\n')strcat(wholeline,comb);
