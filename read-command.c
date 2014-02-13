@@ -278,14 +278,37 @@ void depthTraverse( struct command * p)
   }
 }
 
+void deleteQuotion (char * arg) {
+   	int j;
+	     if (arg[0] == '\"' || arg[0] == '\'') {
+		  for (j = 0; arg[j] != '\0'; j++) {
+		     arg[j] = arg[j+1];
+		  }
+		  j = j - 2;
+		  arg[j] = '\0';
+	     }
+}   
 
+int ungets(char* str, FILE* stream) {
+
+   int i;
+   if (!str || !stream) return -1;
+
+   size_t len = strlen(str);
+
+   for (i=len-1; i>=0; i--) if (ungetc(str[i], stream) == EOF) return -1;
+
+   return len;
+
+}
 /* FIXME: Define the type 'struct command_stream' here.  This should
    complete the incomplete type declaration in command.h.  */
 typedef struct Node * command_stream;
 
 struct Node **
 make_command_stream (int (*get_next_byte) (void *),
-		     void *get_next_byte_argument)
+		     void *get_next_byte_argument,
+		     char ** arg)
 {
   /* FIXME: Replace this with your implementation.  You may need to
      add auxiliary functions and otherwise modify the source code.
@@ -328,6 +351,13 @@ make_command_stream (int (*get_next_byte) (void *),
       //putchar (c);
       switch (c)
       {
+	case '$' :
+		input=get_next_byte (get_next_byte_argument);
+		int index = input - '0';
+		//printf("%s\n", *arg);
+		deleteQuotion(arg[index]);
+		ungets(arg[index], get_next_byte_argument);	
+		break;
       case '(': 
          //printf("%s\n", tmp); 
          //if ( tmp == "\0")i

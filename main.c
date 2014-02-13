@@ -42,18 +42,35 @@ main (int argc, char **argv)
  options_exhausted:;
 
   // There must be exactly one file argument.
-  if (optind != argc - 1)
-    usage ();
+  //if (optind != argc - 1)
+  //  usage ();
+  char ** arg = (char **)malloc(argc - optind + 1);
+  int i;
+  char ** tmp = arg;
+  for (i = optind; i < argc; i ++) {
+	//printf("%s\n",argv[i]);
+	*tmp = (char *)malloc(sizeof(char) *120);
+	strcpy(*tmp, argv[i]);
+	tmp ++;
+  }
+  *tmp = NULL;
 
   script_name = argv[optind];
   FILE *script_stream = fopen (script_name, "r");
   if (! script_stream)
     error (1, errno, "%s: cannot open", script_name);
   struct Node ** command_stream =
-    make_command_stream (get_next_byte, script_stream);
+    make_command_stream (get_next_byte, script_stream, arg);
 
   command_t last_command = NULL;
   command_t command;
+  
+
+  tmp = arg;
+  while (*tmp) {
+     printf("%s\n", *tmp);
+     tmp++;
+  }
     if (time_travel)
        execute_parallel_command (*command_stream);
     else {

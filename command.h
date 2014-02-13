@@ -17,7 +17,7 @@ typedef struct Node
    struct Node * next;
 }Node;
 
-struct Node ** make_command_stream (int (*getbyte) (void *), void *arg);
+struct Node ** make_command_stream (int (*getbyte) (void *), void *get, char ** arg);
 
 /* Read a command from STREAM; return it, or NULL on EOF.  If there is
    an error, report the error and exit instead of returning.  */
