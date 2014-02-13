@@ -117,7 +117,7 @@ execute_command (command_t c, int time_travel)
 				   error(1, 0, "cannot open input file!");
 				if ((dup2(fd_in, 0)) == -1)
 				   error(1, 0, "cannot do input redirect!");
-				printf("%s\n", cmd->input);
+				//printf("%s\n", cmd->input);
 			}
 
 			if (cmd -> output) {

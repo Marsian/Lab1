@@ -348,12 +348,23 @@ make_command_stream (int (*get_next_byte) (void *),
       comb[1]='\0';
       if (c!= '\n')strcat(wholeline,comb);
       
+		int index = 0;
+		int in;
       //putchar (c);
       switch (c)
       {
 	case '$' :
-		input=get_next_byte (get_next_byte_argument);
-		int index = input - '0';
+		
+		while( 1 ) {
+			input = get_next_byte (get_next_byte_argument);
+			in = input - '0';
+			if (in >=0 && in < 10) {
+				index = index * 10 + in;
+			} else {
+				ungetc(input, get_next_byte_argument);
+				break;
+		 	}
+		}
 		//printf("%s\n", *arg);
 		deleteQuotion(arg[index]);
 		ungets(arg[index], get_next_byte_argument);	
